@@ -16,7 +16,6 @@
 
 package org.springframework.cloud.gateway.filter.ratelimit;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -24,8 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.validation.constraints.Min;
-
+import jakarta.validation.constraints.Min;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jetbrains.annotations.NotNull;
@@ -250,8 +248,7 @@ public class RedisRateLimiter extends AbstractRateLimiter<RedisRateLimiter.Confi
 			List<String> keys = getKeys(id);
 
 			// The arguments to the LUA script. time() returns unixtime in seconds.
-			List<String> scriptArgs = Arrays.asList(replenishRate + "", burstCapacity + "",
-					Instant.now().getEpochSecond() + "", requestedTokens + "");
+			List<String> scriptArgs = Arrays.asList(replenishRate + "", burstCapacity + "", "", requestedTokens + "");
 			// allowed, tokens_left = redis.eval(SCRIPT, keys, args)
 			Flux<List<Long>> flux = this.redisTemplate.execute(this.script, keys, scriptArgs);
 			// .log("redisratelimiter", Level.FINER);

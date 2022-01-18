@@ -43,6 +43,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.LinkedMultiValueMap;
@@ -75,6 +76,7 @@ public class ProductionConfigurationTests {
 	@Before
 	public void init() throws Exception {
 		application.setHome(new URI("http://localhost:" + port));
+		rest.getRestTemplate().setRequestFactory(new SimpleClientHttpRequestFactory());
 	}
 
 	@Test
@@ -234,6 +236,28 @@ public class ProductionConfigurationTests {
 				new HttpEntity<Foo>(foo), returnType, Collections.singletonMap("id", "123"));
 		assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 		assertThat(deleteResponse.getBody().get("deleted")).isEqualToComparingFieldByField(foo);
+	}
+
+	@Test
+	@SuppressWarnings({ "Duplicates", "unchecked" })
+	public void testSensitiveHeadersOverride() throws Exception {
+		RequestEntity<Void> request = RequestEntity
+				.get(rest.getRestTemplate().getUriTemplateHandler().expand("/proxy/headers")).header("foo", "bar")
+				.header("abc", "xyz").header("cookie", "monster").build();
+		Map<String, List<String>> headers = rest.exchange(request, Map.class).getBody();
+		assertThat(headers).doesNotContainKey("foo").doesNotContainKey("hello").containsKeys("bar", "abc");
+
+		assertThat(headers.get("cookie")).containsOnly("monster");
+	}
+
+	@Test
+	@SuppressWarnings({ "Duplicates", "unchecked" })
+	public void testSensitiveHeadersDefault() throws Exception {
+		Map<String, List<String>> headers = rest.exchange(RequestEntity
+				.get(rest.getRestTemplate().getUriTemplateHandler().expand("/proxy/sensitive-headers-default"))
+				.header("cookie", "monster").build(), Map.class).getBody();
+
+		assertThat(headers).doesNotContainKey("cookie");
 	}
 
 	@Test
@@ -406,8 +430,16 @@ public class ProductionConfigurationTests {
 			@GetMapping("/proxy/headers")
 			@SuppressWarnings("Duplicates")
 			public ResponseEntity<Map<String, List<String>>> headers(ProxyExchange<Map<String, List<String>>> proxy) {
-				proxy.sensitive("foo");
-				proxy.sensitive("hello");
+				proxy.sensitive("foo", "hello");
+				proxy.header("bar", "hello");
+				proxy.header("abc", "123");
+				proxy.header("hello", "world");
+				return proxy.uri(home.toString() + "/headers").get();
+			}
+
+			@GetMapping("/proxy/sensitive-headers-default")
+			public ResponseEntity<Map<String, List<String>>> defaultSensitiveHeaders(
+					ProxyExchange<Map<String, List<String>>> proxy) {
 				proxy.header("bar", "hello");
 				proxy.header("abc", "123");
 				proxy.header("hello", "world");

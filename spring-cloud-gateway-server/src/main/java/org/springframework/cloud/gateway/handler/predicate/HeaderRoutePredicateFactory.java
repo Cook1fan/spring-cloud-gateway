@@ -21,7 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 
-import javax.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotEmpty;
 
 import org.springframework.util.ObjectUtils;
 import org.springframework.validation.annotation.Validated;
@@ -77,6 +77,11 @@ public class HeaderRoutePredicateFactory extends AbstractRoutePredicateFactory<H
 
 				// there is a value and since regexp is empty, we only check existence.
 				return true;
+			}
+
+			@Override
+			public Object getConfig() {
+				return config;
 			}
 
 			@Override
